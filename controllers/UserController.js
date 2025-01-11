@@ -8,7 +8,7 @@ const createToken = (id) => {
 export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     try {
-        const currentUser = await User.login(email, password)
+        const currentUser = await User.login(email.toLowerCase(), password);
         const token = createToken(currentUser._id);
         res.status(200).json({ token });
     } catch (error) {
@@ -22,7 +22,7 @@ export const signupUser = async (req, res) => {
     console.log(email);
     console.log(password);
     try {
-        const createdUser = await User.signup(email, password);
+        const createdUser = await User.signup(email.toLowerCase(), password);
         await User.findByIdAndUpdate(createdUser._id, {name})
 
         const token = createToken(createdUser._id);
@@ -35,6 +35,7 @@ export const signupUser = async (req, res) => {
 
 export const updateUserPageVisits = async (req, res) => {
     const { userId, pageVisited } = req.body;
+
 
     if (!userId || !pageVisited) {
         return res.status(400).json({ message: 'Invalid request format' });
