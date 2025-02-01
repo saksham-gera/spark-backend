@@ -1,55 +1,40 @@
 import express from 'express';
-const router = express.Router({mergeParams: true});
-import {loginUser,signupUser,deleteAllSelectedEntries, updateUserPageVisits} from '../controllers/UserController.js';
-import jwt from 'jsonwebtoken';
+const router = express.Router();
+import { loginUser, signupUser, verifyOTP } from '../controllers/UserController.js';
 import { User } from '../models/User.js';
 
-
 const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization;
-    if (!token) {
-        return res.status(401).send('Unauthorized');
-    }
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-    jwt.verify(token, 'mysecretcode', (err, decoded) => {
-        if (err) {
-            return res.status(401).send('Invalid token');
-        }
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) return res.status(401).json({ error: 'Invalid token' });
         req.user = decoded;
         next();
     });
 };
 
-router.get('/' ,async (req,res) => {
-    const usersData = await User.find({});
-    res.json(usersData);
-});
-
-// Route to handle user login
-router.post('/login', (req, res) => {
-    loginUser(req, res);
-});
-
-router.get('/login', verifyToken , async (req, res) => {
-    if(!req.user){
-        return res.status(401).send('Unauthorized');
+router.get('/', async (req, res) => {
+    try {
+        const users = await User.findAll();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
     }
-    const currUser = await User.findById(req.user.id);
-
-    res.json({userId:currUser?.id,name: currUser?.name, email: currUser?.email});
 });
+router.post('/verify-otp', verifyOTP);
 
-// Route to handle user signup
-router.post('/signup', (req, res) => {
-    signupUser(req, res);
+router.post('/login', loginUser);
+router.post('/signup', signupUser);
+router.get('/login', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        res.json({ userId: user.id, name: user.name, email: user.email });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
 });
-
-router.delete('/delete', deleteAllSelectedEntries);
-
-router.post('/UpdatePagesVisited',(req,res)=>{
-    console.log(req.body);
-    updateUserPageVisits(req,res);
-});
-
 
 export default router;

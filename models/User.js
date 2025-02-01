@@ -4,32 +4,37 @@ const Schema = mongoose.Schema;
 import bcrypt from 'bcrypt';
 
 const userSchema = new Schema({
-    name: String,
+    name: {
+        type: String,
+        unique: true
+    },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        match: [/\S+@\S+\.\S+/, 'Please enter a valid email address']
+    },
+    role: {
+        type: String,
     },
     password: {
         type: String,
         required: true
     },
-    services: { type: Number, default: 0 },
-    aboutUs: { type: Number, default: 0 },
-    nutritionStrategy: { type: Number, default: 0 },
-    ayurveda: { type: Number, default: 0 },
-    protein: { type: Number, default: 0 },
-    diet: { type: Number, default: 0 },
-})
+    otp: {
+        type: String
+    },
+    otpExpiry: {
+        type: Date
+    }
+}, { timestamps: true });
 
-    // validating email and password
-userSchema.statics.signup = async function (email, password, phone) {
-    // checking for uniqueness of email
+
+userSchema.statics.signup = async function (email, password) {
     const exists = await this.findOne({ email });
     if (exists)
         throw Error('Email already exists');
 
-    // if email is unique hash the password and create the user
     const salt = await bcrypt.genSalt(10);
     const hashPswd = await bcrypt.hash(password, salt);
     const user = await this.create({ email, password: hashPswd });
@@ -49,5 +54,5 @@ userSchema.statics.login = async function (email, password) {
 }
 
 const User = mongoose.model('user', userSchema);
-export { User};
+export { User };
 
